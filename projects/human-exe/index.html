@@ -42,7 +42,7 @@
   }
   button{font:inherit}
   .app{width:100%;height:100%;display:grid;grid-template-rows:auto 1fr;position:relative}
-  header{display:flex;align-items:center;justify-content:space-between;padding:20px 28px;z-index:2}
+  header{display:flex;align-items:center;justify-content:flex-start;height:56px;padding:0 28px;z-index:2}
   header{font-size:12px;letter-spacing:.12em;color:#aaa;text-transform:uppercase}
   .brand{color:var(--fg);font-weight:800}
   main{display:grid;place-items:center;min-height:0;padding:16px}
@@ -130,16 +130,20 @@
     padding:11px;border:1px solid #2f2f2f;background:transparent;color:#9d9d9d;cursor:pointer;font-size:11px
   }
   .secondary-actions button:hover{color:var(--fg);border-color:#555}
+  @media(max-width:600px){
+  }
+
 
   .creator{
     position:fixed;
-    top:14px;
-    right:18px;
+    top:10px;
+    right:28px;
     z-index:40;
     display:flex;
     align-items:center;
     gap:8px;
-    padding:6px 11px 6px 6px;
+    height:36px;
+    padding:4px 11px 4px 4px;
     border:1px solid #2c2c2c;
     border-radius:999px;
     background:rgba(10,10,10,.82);
@@ -168,18 +172,34 @@
     letter-spacing:.02em;
     color:var(--fg);
   }
-  .creator-sep{color:#444;font-size:11px}
-  .creator-github{font-size:10px;font-weight:800;letter-spacing:.04em;color:#7f7f7f}
+  .creator-sep{
+    color:#444;
+    font-size:11px;
+  }
+  .creator-github{
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.04em;
+    color:#7f7f7f;
+  }
   .creator:hover .creator-github{color:var(--acid)}
 
   @media(max-width:720px){
-    .creator{top:9px;right:10px;padding:5px 10px 5px 5px;gap:7px}
+    .creator{
+      top:10px;
+      right:16px;
+      height:36px;
+      padding:4px 10px 4px 4px;
+      gap:7px;
+    }
     .creator img{width:25px;height:25px}
     .creator-name{font-size:10px}
     .creator-github{font-size:9px}
   }
+
   @media (max-width:600px){
-    header{padding:16px}
+    header{height:56px;padding:0 16px}
+    footer span:last-child{display:none}
     .screen{height:78vh;min-height:480px}
     .choices{grid-template-columns:1fr 1fr;gap:8px}
     .choice{min-width:0;padding:16px 8px}
@@ -222,6 +242,7 @@
 
 <script>
 (() => {
+  // 部署前只需要把这一行改成你的真实仓库地址。
   const GITHUB_URL = 'https://github.com/ceasarXuu/some-fun';
   const params = new URLSearchParams(location.search);
   const challengeScore = Number(params.get('challenge')) || null;
@@ -230,6 +251,27 @@
   const screen = document.getElementById('screen');
   const toast = document.getElementById('toast');
   const sid = Math.random().toString(16).slice(2,8).toUpperCase();
+  
+
+
+  // Challenge links change the first impression immediately.
+  if (challengeScore) {
+    screen.innerHTML = `
+      <div class="scanline"></div>
+      <div class="eyebrow">incoming human challenge</div>
+      <div class="challenge-badge">CHALLENGER ${challengerId ? '#'+challengerId : ''} <b>${challengeScore}% HUMAN</b></div>
+      <h1 style="font-size:clamp(48px,9vw,92px)">BEAT<br>${challengeScore}%</h1>
+      <p class="sub">有人认为自己比你更像人类。完成同样的 6 个测试，拿结果说话。</p>
+      <button class="cta" id="challengeStart">ACCEPT CHALLENGE →</button>
+      <div class="tiny">NO LOGIN · SAME TEST FORMAT · 30 SEC</div>
+    `;
+    document.getElementById('challengeStart').onclick = async () => {
+      state.startedAt = performance.now();
+      glitch();
+      await pause(180);
+      test1();
+    };
+  }
 
   const state = {
     round: 0,
@@ -264,26 +306,13 @@
     setTimeout(()=>toast.classList.remove('show'),1400);
   }
 
-  function begin(){
+  const startBtn = document.getElementById('startBtn');
+  if (startBtn) startBtn.onclick = async () => {
     state.startedAt = performance.now();
     glitch();
-    setTimeout(test1,180);
-  }
-
-  if (challengeScore) {
-    screen.innerHTML = `
-      <div class="scanline"></div>
-      <div class="eyebrow">incoming human challenge</div>
-      <div class="challenge-badge">CHALLENGER ${challengerId ? '#'+challengerId : ''} <b>${challengeScore}% HUMAN</b></div>
-      <h1 style="font-size:clamp(48px,9vw,92px)">BEAT<br>${challengeScore}%</h1>
-      <p class="sub">有人认为自己比你更像人类。完成同样的 6 个测试，拿结果说话。</p>
-      <button class="cta" id="challengeStart">ACCEPT CHALLENGE →</button>
-      <div class="tiny">NO LOGIN · SAME TEST FORMAT · 30 SEC</div>
-    `;
-    document.getElementById('challengeStart').onclick = begin;
-  } else {
-    document.getElementById('startBtn').onclick = begin;
-  }
+    await pause(180);
+    test1();
+  };
 
   function test1(){
     state.round=1;
@@ -480,6 +509,7 @@
     else {title='BOT DETECTED'; quote='完美的人类不存在。你露馅了。';}
 
     const percentile=clamp(Math.round(100 - (score-35)*1.25),1,87);
+
     const challenged = !!challengeScore;
     const won = challenged && score > challengeScore;
     const tied = challenged && score === challengeScore;
@@ -536,9 +566,14 @@
     const challengeUrl = `${cleanBase}?challenge=${score}&from=${encodeURIComponent(sid)}`;
     const shareText = challenged
       ? (won
-          ? `I beat ${challengeScore}% with ${score}% HUMAN on HUMAN.exe.\nApparently my challenger may be a bot.\nCan you beat me?`
-          : `I got ${score}% HUMAN on HUMAN.exe.\nI couldn't beat ${challengeScore}% — can you?`)
-      : `I got ${score}% HUMAN on HUMAN.exe — ${title}.\nCan you prove you're more human than me?`;
+          ? `I beat ${challengeScore}% with ${score}% HUMAN on HUMAN.exe.
+Apparently my challenger may be a bot.
+Can you beat me?`
+          : `I got ${score}% HUMAN on HUMAN.exe.
+I couldn't beat ${challengeScore}% — can you?
+`)
+      : `I got ${score}% HUMAN on HUMAN.exe — ${title}.
+Can you prove you're more human than me?`;
 
     document.getElementById('again').onclick=()=>location.href = cleanBase;
 
@@ -550,7 +585,8 @@
     };
 
     document.getElementById('copyResult').onclick=async()=>{
-      const copy = `${shareText}\n${challengeUrl}`;
+      const copy = `${shareText}
+${challengeUrl}`;
       try{
         await navigator.clipboard.writeText(copy);
         say('RESULT + CHALLENGE LINK COPIED');
@@ -560,7 +596,8 @@
     };
 
     document.getElementById('starResult').onclick=()=>{
-      window.open(GITHUB_URL,'_blank','noopener,noreferrer');
+      if(GITHUB_URL) window.open(GITHUB_URL,'_blank','noopener,noreferrer');
+      else say('SET GITHUB_URL FIRST');
     };
   }
 })();
